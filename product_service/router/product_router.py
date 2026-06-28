@@ -13,7 +13,8 @@ router = APIRouter()
 @router.get('/',response_model= list[ProductResponseSchema])
 def get_products(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=20),
+    limit: int = Query(10, ge=1, le=20)
+    ,
     db: Session = Depends(get_db)):
     offset = (page-1)*limit
     products = db.query(Product).offset(offset).limit(limit).all()
