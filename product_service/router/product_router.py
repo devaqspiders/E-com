@@ -10,11 +10,10 @@ from decimal import Decimal
 
 router = APIRouter()
 
-@router.get('/',response_model= list[ProductResponseSchema])
+@router.get('',response_model= list[ProductResponseSchema])
 def get_products(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=20)
-    ,
+    limit: int = Query(10, ge=1, le=20),
     db: Session = Depends(get_db)):
     offset = (page-1)*limit
     products = db.query(Product).offset(offset).limit(limit).all()
@@ -25,7 +24,7 @@ def get_product(product_id: UUID, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     return product
 
-@router.post('/')
+@router.post('', response_model=ProductResponseSchema)
 async def create_product(name : str = Form(...), desc : str = Form(...), price : Decimal = Form(...), images : list[UploadFile] = Form(...), category_name : str = Form(...), db: Session = Depends(get_db)):
     category = db.query(Category).filter(Category.category_name == category_name).first()
 
@@ -51,7 +50,7 @@ async def create_product(name : str = Form(...), desc : str = Form(...), price :
         db.add(product_img)
     db.commit()
     db.refresh(product)
-    return {'name':name, 'desc':desc, 'price':price, 'images':images, 'category':category_name}
+    return product
 
 @router.put('/{product_id}', response_model= ProductResponseSchema)
 def update_product(product_id: UUID, data: ProductModifySchema, db: Session = Depends(get_db)):

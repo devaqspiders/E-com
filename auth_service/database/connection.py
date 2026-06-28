@@ -7,7 +7,7 @@ load_dotenv()
 
 user = os.getenv('DB_USER')
 password = os.getenv('DB_PASSWORD')
-db_name = os.getenv('PRODUCT_DB')
+db_name = os.getenv('USER_DB')
 
 engine = create_engine(f"postgresql+psycopg2://{user}:{password}@localhost:5432/{db_name}")
 Base = declarative_base()
