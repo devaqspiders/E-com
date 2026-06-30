@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from router.product_router import router as product_router
 from router.category_router import router as category_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 connection.Base.metadata.create_all(bind=connection.engine)
 

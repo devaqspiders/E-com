@@ -33,11 +33,3 @@ class LogInUser(BaseModel):
 class RefreshTokenRequest(BaseModel):
     refresh_token : str
 
-class ModifyUser(BaseModel):
-    name : str | None = None
-    email : EmailStr | None = None
-    role : str | None = None
-
-    model_config={
-        "from_attributes": True
-    }

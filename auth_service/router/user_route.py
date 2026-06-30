@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
-from schema.user_schema import CreateUser, LogInUser, RefreshTokenRequest, ModifyUser
+from schema.user_schema import CreateUser, LogInUser, RefreshTokenRequest
 from database.connection import Session
 from database.dependencies import get_db
 from models.usermodel import UserModel
@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 from auth.jwtgen import create_access_token
 from auth.security import get_current_user
-from auth.role import required_role
+
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -69,7 +69,3 @@ def profile(payload: dict=Depends(get_current_user)):
 @router.get('/logout')
 def logout(payload: dict=Depends(get_current_user)):
     return Response({'message':'logout successfull'},status_code=200)
-
-@router.put('/')
-def role_change(data: ModifyUser,user: dict = Depends(required_role("Admin"))):
-    pass
