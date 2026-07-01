@@ -10,6 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 connection.Base.metadata.create_all(bind=connection.engine)
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # or restrict to specific origins, see note below
+    allow_credentials=False,      # see note below
+    allow_methods=["*"],          # GET, POST, PATCH, DELETE, OPTIONS, etc.
+    allow_headers=["*"],          # lets your Authorization: Bearer header through
+)
 app.mount(
     "/media",
     StaticFiles(directory="media"),

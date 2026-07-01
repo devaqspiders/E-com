@@ -21,4 +21,3 @@ def create_category(category: CategoryCreateSchema, db: Session = Depends(get_db
 def get_categories(db : Session = Depends(get_db)):
     category = db.query(Category).all()
     return category
-

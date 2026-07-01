@@ -9,6 +9,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # or restrict to specific origins, see note below
+    allow_credentials=False,      # see note below
+    allow_methods=["*"],          # GET, POST, PATCH, DELETE, OPTIONS, etc.
+    allow_headers=["*"],          # lets your Authorization: Bearer header through
+)
 app.include_router(user_router, prefix='/api/v1/user')
 app.include_router(admin_router, prefix='/api/v1/admin')
 Base.metadata.create_all(bind=engine)

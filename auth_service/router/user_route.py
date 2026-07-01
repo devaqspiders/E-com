@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
-from schema.user_schema import CreateUser, LogInUser, RefreshTokenRequest
+from schema.user_schema import CreateUser, LogInUser, RefreshTokenRequest, ChangePassword
 from database.connection import Session
 from database.dependencies import get_db
 from models.usermodel import UserModel
@@ -69,3 +69,26 @@ def profile(payload: dict=Depends(get_current_user)):
 @router.get('/logout')
 def logout(payload: dict=Depends(get_current_user)):
     return Response({'message':'logout successfull'},status_code=200)
+
+@router.patch('/change_password')
+def change_password(data: ChangePassword, user: dict=Depends(get_current_user), db: Session = Depends(get_db)):
+    user_db = db.query(UserModel).filter(UserModel.email==user['email']).first()
+    if not user_db:
+        raise HTTPException(404, "User not found")
+    if not verify_password(
+        data.current_password,
+        user_db.password
+    ):
+        raise HTTPException(
+            400,
+            "Current password is incorrect"
+        )
+    user_db.password = hash_password(
+        data.new_password
+    )
+    db.commit()
+    db.refresh(user_db)
+
+    return {
+        "message": "Password updated successfully"
+    }

@@ -36,7 +36,7 @@ def get_customer(db: Session= Depends(get_db), user: dict = Depends(required_rol
 
 @router.get('/{id}', response_model=GetUserResponse)
 def get_user(id: UUID, db: Session = Depends(get_db), user: dict = Depends(required_role("Admin"))):
-    db_data =  db.query(UserModel).get(id)
+    db_data =  db.query(UserModel).get(UserModel,id)
     print(db_data)
     return db_data
 
@@ -72,21 +72,6 @@ def remove_customer(id: UUID, user: dict = Depends(required_role("Admin", "admin
     else:
         db.delete(db_data)
         db.commit()
-    return Response({'message': "user removed successfully"}, status_code=200)
+    return Response({'message': "user removed successfully"})
 
-@router.patch('/change_password')
-def change_password(password: str, user: dict=Depends(get_current_user), db: Session = Depends(get_db)):
-    user_db = db.query(UserModel).filter(UserModel.email==user['email']).first()
-    if not user_db:
-        raise HTTPException(
-            status_code=403,
-            detail={'message':'email is invalid'}
-        )
-    else:
-        user_db.password = hash_password(password)
-        return Response(
-            content={
-                "message" : "password updated successfully"
-            },
-            status_code=200
-        )
+
