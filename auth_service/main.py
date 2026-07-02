@@ -1,4 +1,5 @@
 from models.usermodel import UserModel
+from models.refreshmodel import RefreshModel
 from database.connection import Base, engine
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse

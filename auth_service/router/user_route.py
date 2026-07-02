@@ -8,8 +8,10 @@ from auth import jwtgen
 from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
-from auth.jwtgen import create_access_token
+from auth.jwtgen import create_access_token, delete_refresh_token
 from auth.security import get_current_user
+from datetime import datetime, timedelta, UTC
+from models.refreshmodel import RefreshModel
 
 
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -31,7 +33,7 @@ def login(user: LogInUser, db: Session=Depends(get_db)):
     if db_user is not None:
         if verify_password(user.password, db_user.hashed_password):
             access_token = jwtgen.create_access_token(id=str(db_user.id), name=db_user.name, role=db_user.role, email=db_user.email)
-            refresh_token=jwtgen.create_refresh_token(id=str(db_user.id), name=db_user.name, role=db_user.role, email=db_user.email)
+            refresh_token=jwtgen.create_refresh_token(db, id=str(db_user.id), name=db_user.name, role=db_user.role, email=db_user.email)
             return {
                 "access_token":access_token,
                 "refresh_token":refresh_token
@@ -42,7 +44,7 @@ def login(user: LogInUser, db: Session=Depends(get_db)):
         raise HTTPException(status_code=401, detail='invalid username or emailid')
     
 @router.post('/refresh')
-def refresh_token(request: RefreshTokenRequest):
+def refresh_token(request: RefreshTokenRequest, db: Session=Depends(get_db)):
     try:
         payload = jwt.decode(
             request.refresh_token,
@@ -53,6 +55,13 @@ def refresh_token(request: RefreshTokenRequest):
         raise HTTPException(
             status_code=401,
             detail="Invalid Refresh Token"
+        )
+    dt = datetime.now(tz=UTC)
+    if int(dt.timestamp()) > payload['exp']:
+        delete_refresh_token(db, payload['id'])
+        raise HTTPException(
+            status_code=400,
+            detail="refresh token expired"
         )
     req_token = create_access_token(
         id=payload['id'],
@@ -67,8 +76,9 @@ def profile(payload: dict=Depends(get_current_user)):
     return payload
 
 @router.get('/logout')
-def logout(payload: dict=Depends(get_current_user)):
-    return Response({'message':'logout successfull'},status_code=200)
+def logout(db: Session=Depends(get_db),payload: dict=Depends(get_current_user)):
+    delete_refresh_token(db, payload['id'])
+    return {'message':'logout successfull'}
 
 @router.patch('/change_password')
 def change_password(data: ChangePassword, user: dict=Depends(get_current_user), db: Session = Depends(get_db)):

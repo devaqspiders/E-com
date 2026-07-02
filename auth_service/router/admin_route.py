@@ -8,11 +8,12 @@ from database.dependencies import get_db
 from uuid import UUID
 from auth.security import get_current_user
 from auth.password import hash_password
+from auth.role import required_role
 
 router = APIRouter()
 
 @router.get('/', response_model=list[GetUserResponse])
-def get_user_and_seller(db: Session= Depends(get_db), user: dict = Depends(required_role("Admin"))):
+def get_user_and_seller(db: Session= Depends(get_db), user: dict = Depends(required_role("Admin", "admin"))):
     db_data = db.query(UserModel).filter(or_(
             UserModel.role == "customer",
             UserModel.role == "seller"
@@ -20,14 +21,14 @@ def get_user_and_seller(db: Session= Depends(get_db), user: dict = Depends(requi
     return db_data
 
 @router.get('/seller', response_model=list[GetUserResponse])
-def get_seller(db: Session= Depends(get_db), user: dict = Depends(required_role("Admin"))):
+def get_seller(db: Session= Depends(get_db), user: dict = Depends(required_role("Admin", "admin"))):
     db_data = db.query(UserModel).filter(
             UserModel.role == "seller"
         ).all()
     return db_data
 
 @router.get('/customer', response_model=list[GetUserResponse])
-def get_customer(db: Session= Depends(get_db), user: dict = Depends(required_role("Admin"))):
+def get_customer(db: Session= Depends(get_db), user: dict = Depends(required_role("Admin", "admin"))):
     db_data = db.query(UserModel).filter(
             UserModel.role == "customer"
         ).all()
@@ -35,13 +36,13 @@ def get_customer(db: Session= Depends(get_db), user: dict = Depends(required_rol
     
 
 @router.get('/{id}', response_model=GetUserResponse)
-def get_user(id: UUID, db: Session = Depends(get_db), user: dict = Depends(required_role("Admin"))):
+def get_user(id: UUID, db: Session = Depends(get_db), user: dict = Depends(required_role("Admin", "admin"))):
     db_data =  db.query(UserModel).get(UserModel,id)
     print(db_data)
     return db_data
 
 @router.patch('/{id}', response_model=GetUserResponse)
-def role_change(data: ModifyUser,id: UUID ,user: dict = Depends(required_role("Admin")), db : Session = Depends(get_db)):
+def role_change(data: ModifyUser,id: UUID ,user: dict = Depends(required_role("Admin", "admin")), db : Session = Depends(get_db)):
     user_data = data.model_dump(exclude_unset=True)
     db_data =  db.query(UserModel).filter(UserModel.id==id).first()
     for key, value in user_data.items():
