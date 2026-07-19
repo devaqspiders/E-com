@@ -25,13 +25,17 @@ class CreateUser(BaseModel):
             raise PasswordValidationException("Password must contain at least one special character")
 
         return value
-    
+
 class LogInUser(BaseModel):
     username : str | EmailStr
     password : str
 
 class RefreshTokenRequest(BaseModel):
     refresh_token : str
+
+class GetOtp(BaseModel):
+    email : EmailStr
+    otp : int
 
 class ChangePassword(BaseModel):
     old_password : str

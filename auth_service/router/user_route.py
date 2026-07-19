@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
-from schema.user_schema import CreateUser, LogInUser, RefreshTokenRequest, ChangePassword
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.responses import JSONResponse
+from schema.user_schema import CreateUser, LogInUser, RefreshTokenRequest, ChangePassword, GetOtp
 from database.connection import Session
 from database.dependencies import get_db
 from models.usermodel import UserModel
@@ -12,7 +13,9 @@ from auth.jwtgen import create_access_token, delete_refresh_token
 from auth.security import get_current_user
 from datetime import datetime, timedelta, UTC
 from models.refreshmodel import RefreshModel
-
+import httpx
+from database.redisd_setup import redis_client
+import json
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -21,11 +24,55 @@ load_dotenv()
 router = APIRouter()
 
 @router.post('/signup')
-def signup(user: CreateUser, db: Session=Depends(get_db)):
-    user = UserModel(name=user.name, email=user.email, hashed_password=hash_password(user.password))
-    db.add(user)
-    db.commit()
-    return {"message":"user created"}
+async def signup(user: GetOtp, db: Session=Depends(get_db)):
+    data = await redis_client.get(f"signup:{user.email}")
+    userdata = json.loads(data)
+    if data is None:
+        raise HTTPException(
+        status_code=400,
+        detail="OTP expired"
+        )
+    if user.otp == userdata['otp']:
+        existing = db.query(UserModel).filter(
+        UserModel.email == userdata["email"]
+        ).first()
+        if existing:
+            raise HTTPException(
+            status_code=409,
+            detail="User already exists"
+            )
+        user = UserModel(name=userdata['name'], email=userdata['email'], hashed_password=hash_password(userdata['password']))
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        await redis_client.delete(f"signup:{user.email}")
+        return {"message":"user created"}
+    else:
+        raise HTTPException(
+        status_code=400,
+        detail="Invalid OTP"
+)
+
+@router.post('/request-otp')
+async def verify_otp(data : CreateUser, db: Session=Depends(get_db)):
+    db_user = db.query(UserModel).filter((UserModel.email==data.email)).first()
+    if db_user:
+        raise HTTPException(
+        status_code=409,
+        detail="Email already exists"
+    )
+    data = {
+        'name' : data.name,
+        'email' : data.email,
+        'password' : data.password
+    }
+    response = httpx.post('http://127.0.0.1:8001/api/v1/generate-otp',json=data)
+    if response.status_code != 200:
+        raise HTTPException(
+        status_code=500,
+        detail="Failed to send OTP"
+    )
+    return {'message':'otp sent successfull'}
 
 @router.post('/login')
 def login(user: LogInUser, db: Session=Depends(get_db)):
@@ -87,13 +134,13 @@ def change_password(data: ChangePassword, user: dict=Depends(get_current_user), 
         raise HTTPException(404, "User not found")
     if not verify_password(
         data.current_password,
-        user_db.password
+        user_db.hashed_password
     ):
         raise HTTPException(
             400,
             "Current password is incorrect"
         )
-    user_db.password = hash_password(
+    user_db.hashed_password = hash_password(
         data.new_password
     )
     db.commit()
