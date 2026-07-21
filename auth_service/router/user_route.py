@@ -40,7 +40,7 @@ async def signup(user: GetOtp, db: Session=Depends(get_db)):
             raise HTTPException(
             status_code=409,
             detail="User already exists"
-            )
+        )
         user = UserModel(name=userdata['name'], email=userdata['email'], hashed_password=hash_password(userdata['password']))
         db.add(user)
         db.commit()
